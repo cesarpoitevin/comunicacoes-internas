@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controle de Comunicações Internas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f4f4f9;
+    }
+    h1 {
+      margin-top: 20px;
+    }
+    .login-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 50px;
+    }
+    .login-container input {
+      margin: 5px;
+      padding: 10px;
+      font-size: 16px;
+    }
+    .login-container button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    .login-container button:hover {
+      background-color: #45a049;
+    }
+    .hidden {
+      display: none;
+    }
+    .table-container {
+      margin: 20px;
+      overflow-x: auto;
+      width: 100%;
+    }
+    table {
+      border-collapse: collapse;
+      width: 95%;
+      margin: 0 auto;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      text-align: center;
+      padding: 8px;
+    }
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    tr:hover {
+      background-color: #ddd;
+    }
+    .marked {
+      background-color: #90EE90 !important; /* Destaca números marcados com verde-claro */
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>Controle de Comunicações Internas</h1>
+
+  <!-- Login Section -->
+  <div class="login-container" id="login-container">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Usuário">
+    <input type="password" id="password" placeholder="Senha">
+    <button onclick="login()">Entrar</button>
+  </div>
+
+  <!-- Table Section -->
+  <div class="table-container hidden" id="table-container">
+    <table id="comunicacoes">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Linhas serão adicionadas dinamicamente -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const backendUrl = 'https://cis-pzk8.onrender.com'; // URL pública do backend no Render
+    const maxComunicacoes = 2000; // Número máximo
+    const tabelaBody = document.querySelector('#comunicacoes tbody');
+
+    // Simula autenticação básica
+    function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      if (username === 'admin' && password === '1234') {
+        document.getElementById('login-container').classList.add('hidden');
+        document.getElementById('table-container').classList.remove('hidden');
+        preencherTabela();
+      } else {
+        alert('Usuário ou senha incorretos!');
+      }
+    }
+
+    // Adiciona linhas na tabela
+    function preencherTabela() {
+      // Busca os números marcados do backend antes de preencher a tabela
+      fetch(`${backendUrl}/api/comunicacoes`)
+        .then((response) => response.json())
+        .then((comunicacoesMarcadas) => {
+          for (let i = 0; i <= maxComunicacoes; i++) {
+            const row = document.createElement('tr');
+
+            const cellNumero = document.createElement('td');
+            cellNumero.textContent = i;
+            row.appendChild(cellNumero);
+
+            const cellAcao = document.createElement('td');
+            const button = document.createElement('button');
+
+            // Verifica se o número já está marcado
+            if (comunicacoesMarcadas.includes(i)) {
+              button.textContent = 'Desmarcar';
+              row.classList.add('marked');
+              button.onclick = () => desmarcarComunicacao(i, button, row);
+            } else {
+              button.textContent = 'Marcar';
+              button.onclick = () => marcarComunicacao(i, button, row);
+            }
+
+            cellAcao.appendChild(button);
+            row.appendChild(cellAcao);
+            tabelaBody.appendChild(row);
+          }
+        })
+        .catch((error) => {
+          console.error('Erro ao carregar números marcados:', error);
+          alert('Não foi possível carregar os dados do servidor.');
+        });
+    }
+
+    function marcarComunicacao(numero, button, row) {
+      fetch(`${backendUrl}/api/comunicacoes/${numero}`, {
+        method: 'POST',
+      })
+        .then((response) => {
+          if (response.ok) {
+            button.textContent = 'Desmarcar';
+            button.onclick = () => desmarcarComunicacao(numero, button, row);
+            row.classList.add('marked');
+          } else {
+            response.json().then((data) => alert(data.error));
+          }
+        })
+        .catch((error) => {
+          console.error('Erro:', error);
+          alert('Falha ao conectar ao servidor.');
+        });
+    }
+
+    function desmarcarComunicacao(numero, button, row) {
+      fetch(`${backendUrl}/api/comunicacoes/${numero}`, {
+        method: 'DELETE',
+      })
+        .then((response) => {
+          if (response.ok) {
+            button.textContent = 'Marcar';
+            button.onclick = () => marcarComunicacao(numero, button, row);
+            row.classList.remove('marked');
+          } else {
+            response.json().then((data) => alert(data.error));
+          }
+        })
+        .catch((error) => {
+          console.error('Erro:', error);
+          alert('Falha ao conectar ao servidor.');
+        });
+    }
+  </script>
+</body>
+</html>
