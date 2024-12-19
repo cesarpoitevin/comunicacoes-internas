@@ -1,42 +1,53 @@
-const express = require('express');
-const cors = require('cors'); // Importa o CORS
+const express = require("express");
+const cors = require("cors");
+
 const app = express();
+const port = process.env.PORT || 10000;
 
-const port = process.env.PORT || 10000; // Render usa a porta fornecida
 app.use(express.json());
-app.use(cors()); // Habilita CORS
+app.use(cors());
 
-// Dados iniciais
 let comunicacoesMarcadas = [
-  { numero: 1, assunto: "Orçamento", destino: "Financeiro", data: "2024-12-19" },
-  { numero: 2, assunto: "Reunião", destino: "RH", data: "2024-12-20" }
+  {
+    numero: 1,
+    assunto: "Entrega de documentos",
+    destino: "Setor Financeiro",
+    data: "2023-12-19",
+  },
+  {
+    numero: 2,
+    assunto: "Reunião de equipe",
+    destino: "Sala de Conferência",
+    data: "2023-12-20",
+  },
 ];
 
-// Rota para buscar números marcados
-app.get('/api/comunicacoes', (req, res) => {
+// Rota para buscar comunicações
+app.get("/api/comunicacoes", (req, res) => {
   res.json(comunicacoesMarcadas);
 });
 
 // Rota para marcar uma nova comunicação
-app.post('/api/comunicacoes', (req, res) => {
+app.post("/api/comunicacoes", (req, res) => {
   const { numero, assunto, destino, data } = req.body;
-  if (!numero || !assunto || !destino || !data) {
-    return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
-  }
 
-  if (comunicacoesMarcadas.find((c) => c.numero === numero)) {
-    return res.status(400).json({ error: 'Número já existe.' });
+  if (
+    comunicacoesMarcadas.some((comunicacao) => comunicacao.numero === numero)
+  ) {
+    return res.status(400).json({ error: "Número já existe." });
   }
 
   comunicacoesMarcadas.push({ numero, assunto, destino, data });
-  res.status(200).send();
+  res.status(201).json({ message: "Comunicação adicionada com sucesso." });
 });
 
-// Rota para desmarcar um número
-app.delete('/api/comunicacoes/:numero', (req, res) => {
+// Rota para deletar uma comunicação
+app.delete("/api/comunicacoes/:numero", (req, res) => {
   const numero = parseInt(req.params.numero);
-  comunicacoesMarcadas = comunicacoesMarcadas.filter((c) => c.numero !== numero);
-  res.status(200).send();
+  comunicacoesMarcadas = comunicacoesMarcadas.filter(
+    (comunicacao) => comunicacao.numero !== numero
+  );
+  res.status(200).json({ message: "Comunicação removida com sucesso." });
 });
 
 app.listen(port, () => {

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Controle de Comunicações Internas</title>
   <style>
     table {
@@ -14,16 +14,12 @@
       padding: 8px;
       text-align: left;
     }
-    th {
-      background-color: #f2f2f2;
-    }
   </style>
 </head>
 <body>
   <h1>Controle de Comunicações Internas</h1>
-  <label for="search">Buscar por número ou assunto</label>
-  <input type="text" id="search" placeholder="Digite para localizar">
-  <button onclick="localizar()">Localizar</button>
+  <input type="text" id="searchInput" placeholder="Buscar por número ou assunto" />
+  <button onclick="buscarComunicacoes()">Localizar</button>
   <br><br>
   <table>
     <thead>
@@ -35,62 +31,71 @@
         <th>Ação</th>
       </tr>
     </thead>
-    <tbody id="tabela-comunicacoes">
-      <!-- Dados serão inseridos aqui -->
-    </tbody>
+    <tbody id="tableBody"></tbody>
   </table>
 
   <script>
-    const tabelaComunicacoes = document.getElementById('tabela-comunicacoes');
-    const searchInput = document.getElementById('search');
+    async function carregarComunicacoes() {
+      try {
+        const response = await fetch("/api/comunicacoes");
+        const comunicacoes = await response.json();
+        const tableBody = document.getElementById("tableBody");
+        tableBody.innerHTML = "";
 
-    // Função para carregar os dados da API
-    async function carregarDados() {
-      const resposta = await fetch('http://localhost:10000/api/comunicacoes');
-      const comunicacoes = await resposta.json();
+        comunicacoes.forEach((comunicacao) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${comunicacao.numero}</td>
+            <td>${comunicacao.assunto}</td>
+            <td>${comunicacao.destino}</td>
+            <td>${comunicacao.data}</td>
+            <td><button onclick="deletarComunicacao(${comunicacao.numero})">Excluir</button></td>
+          `;
+          tableBody.appendChild(row);
+        });
+      } catch (error) {
+        console.error("Erro ao carregar comunicações:", error);
+      }
+    }
 
-      tabelaComunicacoes.innerHTML = '';
-      comunicacoes.forEach(({ numero, assunto, destino, data }) => {
-        const row = document.createElement('tr');
+    async function buscarComunicacoes() {
+      const searchInput = document.getElementById("searchInput").value.toLowerCase();
+      const response = await fetch("/api/comunicacoes");
+      const comunicacoes = await response.json();
+
+      const resultados = comunicacoes.filter(
+        (comunicacao) =>
+          comunicacao.numero.toString().includes(searchInput) ||
+          comunicacao.assunto.toLowerCase().includes(searchInput)
+      );
+
+      const tableBody = document.getElementById("tableBody");
+      tableBody.innerHTML = "";
+
+      resultados.forEach((comunicacao) => {
+        const row = document.createElement("tr");
         row.innerHTML = `
-          <td>${numero}</td>
-          <td>${assunto}</td>
-          <td>${destino}</td>
-          <td>${data}</td>
-          <td><button onclick="remover(${numero})">Remover</button></td>
+          <td>${comunicacao.numero}</td>
+          <td>${comunicacao.assunto}</td>
+          <td>${comunicacao.destino}</td>
+          <td>${comunicacao.data}</td>
+          <td><button onclick="deletarComunicacao(${comunicacao.numero})">Excluir</button></td>
         `;
-        tabelaComunicacoes.appendChild(row);
+        tableBody.appendChild(row);
       });
     }
 
-    // Função para localizar comunicações
-    function localizar() {
-      const termo = searchInput.value.toLowerCase();
-      const linhas = tabelaComunicacoes.querySelectorAll('tr');
-
-      linhas.forEach((linha) => {
-        const [numero, assunto] = linha.querySelectorAll('td');
-        if (
-          numero.textContent.toLowerCase().includes(termo) ||
-          assunto.textContent.toLowerCase().includes(termo)
-        ) {
-          linha.style.display = '';
-        } else {
-          linha.style.display = 'none';
-        }
-      });
+    async function deletarComunicacao(numero) {
+      try {
+        await fetch(`/api/comunicacoes/${numero}`, { method: "DELETE" });
+        carregarComunicacoes();
+      } catch (error) {
+        console.error("Erro ao deletar comunicação:", error);
+      }
     }
 
-    // Função para remover uma comunicação
-    async function remover(numero) {
-      await fetch(`http://localhost:10000/api/comunicacoes/${numero}`, {
-        method: 'DELETE'
-      });
-      carregarDados();
-    }
-
-    // Carregar dados ao iniciar
-    carregarDados();
+    // Carregar comunicações ao carregar a página
+    window.onload = carregarComunicacoes;
   </script>
 </body>
 </html>
