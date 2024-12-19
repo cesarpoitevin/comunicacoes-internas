@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
 const port = process.env.PORT || 10000;
@@ -7,6 +8,10 @@ const port = process.env.PORT || 10000;
 app.use(express.json());
 app.use(cors());
 
+// Serve arquivos estáticos (como index.html) da pasta atual
+app.use(express.static(path.join(__dirname)));
+
+// Dados iniciais
 let comunicacoesMarcadas = [
   {
     numero: 1,
@@ -27,7 +32,7 @@ app.get("/api/comunicacoes", (req, res) => {
   res.json(comunicacoesMarcadas);
 });
 
-// Rota para marcar uma nova comunicação
+// Rota para adicionar uma nova comunicação
 app.post("/api/comunicacoes", (req, res) => {
   const { numero, assunto, destino, data } = req.body;
 
@@ -50,6 +55,7 @@ app.delete("/api/comunicacoes/:numero", (req, res) => {
   res.status(200).json({ message: "Comunicação removida com sucesso." });
 });
 
+// Inicia o servidor
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
 });
