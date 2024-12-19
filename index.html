@@ -5,185 +5,92 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Controle de Comunicações Internas</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      background-color: #f4f4f9;
-    }
-    h1 {
-      margin-top: 20px;
-    }
-    .login-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-top: 50px;
-    }
-    .login-container input {
-      margin: 5px;
-      padding: 10px;
-      font-size: 16px;
-    }
-    .login-container button {
-      padding: 10px 20px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-      font-size: 16px;
-    }
-    .login-container button:hover {
-      background-color: #45a049;
-    }
-    .hidden {
-      display: none;
-    }
-    .table-container {
-      margin: 20px;
-      overflow-x: auto;
-      width: 100%;
-    }
     table {
+      width: 100%;
       border-collapse: collapse;
-      width: 95%;
-      margin: 0 auto;
     }
     th, td {
-      border: 1px solid #ddd;
-      text-align: center;
+      border: 1px solid black;
       padding: 8px;
+      text-align: left;
     }
     th {
-      background-color: #4CAF50;
-      color: white;
-    }
-    tr:nth-child(even) {
       background-color: #f2f2f2;
-    }
-    tr:hover {
-      background-color: #ddd;
-    }
-    .marked {
-      background-color: #90EE90 !important; /* Destaca números marcados com verde-claro */
-    }
-    button {
-      padding: 10px 20px;
-      margin: 10px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    button:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
-    }
-    .search-container {
-      margin: 10px;
-      display: flex;
-      gap: 10px;
-      justify-content: center;
     }
   </style>
 </head>
 <body>
   <h1>Controle de Comunicações Internas</h1>
-
-  <!-- Login Section -->
-  <div class="login-container" id="login-container">
-    <h2>Login</h2>
-    <input type="text" id="username" placeholder="Usuário">
-    <input type="password" id="password" placeholder="Senha">
-    <button onclick="login()">Entrar</button>
-  </div>
-
-  <!-- Table Section -->
-  <div class="table-container hidden" id="table-container">
-    <div class="search-container">
-      <input type="text" id="searchInput" placeholder="Buscar por número ou assunto">
-      <button onclick="localizar()">Localizar</button>
-    </div>
-    <table id="comunicacoes">
-      <thead>
-        <tr>
-          <th>Número</th>
-          <th>Assunto</th>
-          <th>Destino</th>
-          <th>Data</th>
-          <th>Ação</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Linhas serão adicionadas dinamicamente -->
-      </tbody>
-    </table>
-  </div>
+  <label for="search">Buscar por número ou assunto</label>
+  <input type="text" id="search" placeholder="Digite para localizar">
+  <button onclick="localizar()">Localizar</button>
+  <br><br>
+  <table>
+    <thead>
+      <tr>
+        <th>Número</th>
+        <th>Assunto</th>
+        <th>Destino</th>
+        <th>Data</th>
+        <th>Ação</th>
+      </tr>
+    </thead>
+    <tbody id="tabela-comunicacoes">
+      <!-- Dados serão inseridos aqui -->
+    </tbody>
+  </table>
 
   <script>
-    const backendUrl = 'https://cis-pzk8.onrender.com';
-    const tabelaBody = document.querySelector('#comunicacoes tbody');
+    const tabelaComunicacoes = document.getElementById('tabela-comunicacoes');
+    const searchInput = document.getElementById('search');
 
-    function login() {
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
+    // Função para carregar os dados da API
+    async function carregarDados() {
+      const resposta = await fetch('http://localhost:10000/api/comunicacoes');
+      const comunicacoes = await resposta.json();
 
-      if (username === 'admin' && password === '1234') {
-        document.getElementById('login-container').classList.add('hidden');
-        document.getElementById('table-container').classList.remove('hidden');
-        preencherTabela();
-      } else {
-        alert('Usuário ou senha incorretos!');
-      }
-    }
-
-    function preencherTabela() {
-      fetch(`${backendUrl}/api/comunicacoes`)
-        .then((response) => response.json())
-        .then((comunicacoes) => {
-          comunicacoes.forEach(({ numero, assunto, destino, data }) => {
-            const row = document.createElement('tr');
-
-            row.innerHTML = `
-              <td>${numero}</td>
-              <td>${assunto}</td>
-              <td>${destino}</td>
-              <td>${data}</td>
-              <td><button onclick="desmarcar(${numero}, this)">Desmarcar</button></td>
-            `;
-            tabelaBody.appendChild(row);
-          });
-        })
-        .catch((error) => {
-          console.error('Erro ao carregar dados:', error);
-        });
-    }
-
-    function localizar() {
-      const searchInput = document.getElementById('searchInput').value.toLowerCase();
-      Array.from(tabelaBody.children).forEach(row => {
-        const textContent = row.textContent.toLowerCase();
-        row.style.display = textContent.includes(searchInput) ? '' : 'none';
+      tabelaComunicacoes.innerHTML = '';
+      comunicacoes.forEach(({ numero, assunto, destino, data }) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${numero}</td>
+          <td>${assunto}</td>
+          <td>${destino}</td>
+          <td>${data}</td>
+          <td><button onclick="remover(${numero})">Remover</button></td>
+        `;
+        tabelaComunicacoes.appendChild(row);
       });
     }
 
-    function desmarcar(numero, button) {
-      fetch(`${backendUrl}/api/comunicacoes/${numero}`, {
-        method: 'DELETE',
-      })
-        .then((response) => {
-          if (response.ok) {
-            button.closest('tr').remove();
-          } else {
-            alert('Erro ao desmarcar');
-          }
-        });
+    // Função para localizar comunicações
+    function localizar() {
+      const termo = searchInput.value.toLowerCase();
+      const linhas = tabelaComunicacoes.querySelectorAll('tr');
+
+      linhas.forEach((linha) => {
+        const [numero, assunto] = linha.querySelectorAll('td');
+        if (
+          numero.textContent.toLowerCase().includes(termo) ||
+          assunto.textContent.toLowerCase().includes(termo)
+        ) {
+          linha.style.display = '';
+        } else {
+          linha.style.display = 'none';
+        }
+      });
     }
+
+    // Função para remover uma comunicação
+    async function remover(numero) {
+      await fetch(`http://localhost:10000/api/comunicacoes/${numero}`, {
+        method: 'DELETE'
+      });
+      carregarDados();
+    }
+
+    // Carregar dados ao iniciar
+    carregarDados();
   </script>
 </body>
 </html>
