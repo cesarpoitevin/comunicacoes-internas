@@ -5,97 +5,162 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Controle de Comunicações Internas</title>
   <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f8ff;
+      color: #333;
+    }
+
+    header {
+      background-color: #007acc;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+    }
+
+    main {
+      padding: 20px;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
+      margin-bottom: 20px;
     }
-    th, td {
-      border: 1px solid black;
-      padding: 8px;
+
+    table th,
+    table td {
+      border: 1px solid #ddd;
+      padding: 10px;
       text-align: left;
+    }
+
+    table th {
+      background-color: #007acc;
+      color: #fff;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      background-color: #007acc;
+      color: white;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    button:hover {
+      background-color: #005f99;
+    }
+
+    .button-row {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>Controle de Comunicações Internas</h1>
-  <input type="text" id="searchInput" placeholder="Buscar por número ou assunto" />
-  <button onclick="buscarComunicacoes()">Localizar</button>
-  <br><br>
-  <table>
-    <thead>
-      <tr>
-        <th>Número</th>
-        <th>Assunto</th>
-        <th>Destino</th>
-        <th>Data</th>
-        <th>Ação</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
+  <header>
+    <h1>Controle de Comunicações Internas</h1>
+  </header>
+  <main>
+    <div>
+      <input type="text" id="search-input" placeholder="Buscar por número ou assunto" />
+      <button onclick="buscarComunicacao()">Localizar</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Assunto</th>
+          <th>Destino</th>
+          <th>Data</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody id="comunicacoes-tabela">
+        <!-- Linhas geradas dinamicamente -->
+      </tbody>
+    </table>
+    <div class="button-row">
+      <button onclick="adicionarLinha()">Adicionar Linha</button>
+    </div>
+  </main>
 
   <script>
     async function carregarComunicacoes() {
-      try {
-        const response = await fetch("/api/comunicacoes");
-        const comunicacoes = await response.json();
-        const tableBody = document.getElementById("tableBody");
-        tableBody.innerHTML = "";
-
-        comunicacoes.forEach((comunicacao) => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${comunicacao.numero}</td>
-            <td>${comunicacao.assunto}</td>
-            <td>${comunicacao.destino}</td>
-            <td>${comunicacao.data}</td>
-            <td><button onclick="deletarComunicacao(${comunicacao.numero})">Excluir</button></td>
-          `;
-          tableBody.appendChild(row);
-        });
-      } catch (error) {
-        console.error("Erro ao carregar comunicações:", error);
-      }
-    }
-
-    async function buscarComunicacoes() {
-      const searchInput = document.getElementById("searchInput").value.toLowerCase();
-      const response = await fetch("/api/comunicacoes");
+      const response = await fetch('/api/comunicacoes');
       const comunicacoes = await response.json();
 
-      const resultados = comunicacoes.filter(
-        (comunicacao) =>
-          comunicacao.numero.toString().includes(searchInput) ||
-          comunicacao.assunto.toLowerCase().includes(searchInput)
-      );
-
-      const tableBody = document.getElementById("tableBody");
-      tableBody.innerHTML = "";
-
-      resultados.forEach((comunicacao) => {
-        const row = document.createElement("tr");
+      const tabela = document.getElementById('comunicacoes-tabela');
+      tabela.innerHTML = '';
+      comunicacoes.forEach(comunicacao => {
+        const row = document.createElement('tr');
         row.innerHTML = `
           <td>${comunicacao.numero}</td>
           <td>${comunicacao.assunto}</td>
           <td>${comunicacao.destino}</td>
           <td>${comunicacao.data}</td>
-          <td><button onclick="deletarComunicacao(${comunicacao.numero})">Excluir</button></td>
+          <td><button onclick="excluirLinha(${comunicacao.numero})">Excluir</button></td>
         `;
-        tableBody.appendChild(row);
+        tabela.appendChild(row);
       });
     }
 
-    async function deletarComunicacao(numero) {
-      try {
-        await fetch(`/api/comunicacoes/${numero}`, { method: "DELETE" });
+    async function adicionarLinha() {
+      const numero = prompt('Digite o número:');
+      const assunto = prompt('Digite o assunto:');
+      const destino = prompt('Digite o destino:');
+      const data = prompt('Digite a data (YYYY-MM-DD):');
+
+      if (numero && assunto && destino && data) {
+        await fetch('/api/comunicacoes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ numero, assunto, destino, data })
+        });
         carregarComunicacoes();
-      } catch (error) {
-        console.error("Erro ao deletar comunicação:", error);
+      } else {
+        alert('Todos os campos devem ser preenchidos.');
       }
     }
 
-    // Carregar comunicações ao carregar a página
-    window.onload = carregarComunicacoes;
+    async function excluirLinha(numero) {
+      await fetch(`/api/comunicacoes/${numero}`, { method: 'DELETE' });
+      carregarComunicacoes();
+    }
+
+    async function buscarComunicacao() {
+      const termo = document.getElementById('search-input').value.toLowerCase();
+      const response = await fetch('/api/comunicacoes');
+      const comunicacoes = await response.json();
+
+      const tabela = document.getElementById('comunicacoes-tabela');
+      tabela.innerHTML = '';
+      comunicacoes
+        .filter(
+          c =>
+            c.numero.toString().includes(termo) ||
+            c.assunto.toLowerCase().includes(termo)
+        )
+        .forEach(comunicacao => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${comunicacao.numero}</td>
+            <td>${comunicacao.assunto}</td>
+            <td>${comunicacao.destino}</td>
+            <td>${comunicacao.data}</td>
+            <td><button onclick="excluirLinha(${comunicacao.numero})">Excluir</button></td>
+          `;
+          tabela.appendChild(row);
+        });
+    }
+
+    // Inicializa a tabela ao carregar a página
+    carregarComunicacoes();
   </script>
 </body>
 </html>

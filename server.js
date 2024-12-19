@@ -8,23 +8,13 @@ const port = process.env.PORT || 10000;
 app.use(express.json());
 app.use(cors());
 
-// Serve arquivos estáticos (como index.html) da pasta atual
+// Serve arquivos estáticos
 app.use(express.static(path.join(__dirname)));
 
 // Dados iniciais
 let comunicacoesMarcadas = [
-  {
-    numero: 1,
-    assunto: "Entrega de documentos",
-    destino: "Setor Financeiro",
-    data: "2023-12-19",
-  },
-  {
-    numero: 2,
-    assunto: "Reunião de equipe",
-    destino: "Sala de Conferência",
-    data: "2023-12-20",
-  },
+  { numero: 1, assunto: "Entrega de documentos", destino: "RH", data: "2023-12-18" },
+  { numero: 2, assunto: "Reunião", destino: "Sala 1", data: "2023-12-19" },
 ];
 
 // Rota para buscar comunicações
@@ -35,24 +25,15 @@ app.get("/api/comunicacoes", (req, res) => {
 // Rota para adicionar uma nova comunicação
 app.post("/api/comunicacoes", (req, res) => {
   const { numero, assunto, destino, data } = req.body;
-
-  if (
-    comunicacoesMarcadas.some((comunicacao) => comunicacao.numero === numero)
-  ) {
-    return res.status(400).json({ error: "Número já existe." });
-  }
-
   comunicacoesMarcadas.push({ numero, assunto, destino, data });
-  res.status(201).json({ message: "Comunicação adicionada com sucesso." });
+  res.status(201).send();
 });
 
 // Rota para deletar uma comunicação
 app.delete("/api/comunicacoes/:numero", (req, res) => {
   const numero = parseInt(req.params.numero);
-  comunicacoesMarcadas = comunicacoesMarcadas.filter(
-    (comunicacao) => comunicacao.numero !== numero
-  );
-  res.status(200).json({ message: "Comunicação removida com sucesso." });
+  comunicacoesMarcadas = comunicacoesMarcadas.filter(c => c.numero !== numero);
+  res.status(200).send();
 });
 
 // Inicia o servidor
