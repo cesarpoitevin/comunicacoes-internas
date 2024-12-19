@@ -1,43 +1,39 @@
 const express = require('express');
-const cors = require('cors'); // Importa o CORS
+const cors = require('cors');
 const app = express();
 
-const port = process.env.PORT || 10000; // Usa a porta fornecida pelo Render ou 10000 localmente
+const port = process.env.PORT || 10000;
 
-// Middleware
 app.use(express.json());
-app.use(cors()); // Habilita CORS
+app.use(cors());
 
-// Rota inicial para testar o servidor
-app.get('/', (req, res) => res.send('Olá do Render!'));
+let comunicacoesMarcadas = [
+  { numero: 1, assunto: 'Pedido', destino: 'Setor A', data: '2024-01-01' },
+  { numero: 2, assunto: 'Consulta', destino: 'Setor B', data: '2024-01-02' },
+];
 
-// Variável para armazenar os números marcados
-let comunicacoesMarcadas = [];
-
-// Rota para buscar números marcados
+// Rota para buscar todos os registros
 app.get('/api/comunicacoes', (req, res) => {
   res.json(comunicacoesMarcadas);
 });
 
-// Rota para marcar um número
-app.post('/api/comunicacoes/:numero', (req, res) => {
-  const numero = parseInt(req.params.numero);
-  if (!comunicacoesMarcadas.includes(numero)) {
-    comunicacoesMarcadas.push(numero);
-    res.status(200).send();
-  } else {
-    res.status(400).json({ error: 'Número já marcado' });
+// Rota para adicionar um registro
+app.post('/api/comunicacoes', (req, res) => {
+  const { numero, assunto, destino, data } = req.body;
+  if (comunicacoesMarcadas.find(com => com.numero === numero)) {
+    return res.status(400).json({ error: 'Número já existe' });
   }
+  comunicacoesMarcadas.push({ numero, assunto, destino, data });
+  res.status(201).send();
 });
 
-// Rota para desmarcar um número
+// Rota para desmarcar um registro
 app.delete('/api/comunicacoes/:numero', (req, res) => {
   const numero = parseInt(req.params.numero);
-  comunicacoesMarcadas = comunicacoesMarcadas.filter(n => n !== numero);
+  comunicacoesMarcadas = comunicacoesMarcadas.filter(com => com.numero !== numero);
   res.status(200).send();
 });
 
-// Inicializa o servidor
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
 });

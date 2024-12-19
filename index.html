@@ -84,6 +84,12 @@
       background-color: #ccc;
       cursor: not-allowed;
     }
+    .search-container {
+      margin: 10px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
   </style>
 </head>
 <body>
@@ -99,10 +105,17 @@
 
   <!-- Table Section -->
   <div class="table-container hidden" id="table-container">
+    <div class="search-container">
+      <input type="text" id="searchInput" placeholder="Buscar por número ou assunto">
+      <button onclick="localizar()">Localizar</button>
+    </div>
     <table id="comunicacoes">
       <thead>
         <tr>
           <th>Número</th>
+          <th>Assunto</th>
+          <th>Destino</th>
+          <th>Data</th>
           <th>Ação</th>
         </tr>
       </thead>
@@ -113,11 +126,9 @@
   </div>
 
   <script>
-    const backendUrl = 'https://cis-pzk8.onrender.com'; // URL pública do backend no Render
-    const maxComunicacoes = 2000; // Número máximo
+    const backendUrl = 'https://cis-pzk8.onrender.com';
     const tabelaBody = document.querySelector('#comunicacoes tbody');
 
-    // Simula autenticação básica
     function login() {
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
@@ -131,78 +142,46 @@
       }
     }
 
-    // Adiciona linhas na tabela
     function preencherTabela() {
-      // Busca os números marcados do backend antes de preencher a tabela
       fetch(`${backendUrl}/api/comunicacoes`)
         .then((response) => response.json())
-        .then((comunicacoesMarcadas) => {
-          for (let i = 0; i <= maxComunicacoes; i++) {
+        .then((comunicacoes) => {
+          comunicacoes.forEach(({ numero, assunto, destino, data }) => {
             const row = document.createElement('tr');
 
-            const cellNumero = document.createElement('td');
-            cellNumero.textContent = i;
-            row.appendChild(cellNumero);
-
-            const cellAcao = document.createElement('td');
-            const button = document.createElement('button');
-
-            // Verifica se o número já está marcado
-            if (comunicacoesMarcadas.includes(i)) {
-              button.textContent = 'Desmarcar';
-              row.classList.add('marked');
-              button.onclick = () => desmarcarComunicacao(i, button, row);
-            } else {
-              button.textContent = 'Marcar';
-              button.onclick = () => marcarComunicacao(i, button, row);
-            }
-
-            cellAcao.appendChild(button);
-            row.appendChild(cellAcao);
+            row.innerHTML = `
+              <td>${numero}</td>
+              <td>${assunto}</td>
+              <td>${destino}</td>
+              <td>${data}</td>
+              <td><button onclick="desmarcar(${numero}, this)">Desmarcar</button></td>
+            `;
             tabelaBody.appendChild(row);
-          }
+          });
         })
         .catch((error) => {
-          console.error('Erro ao carregar números marcados:', error);
-          alert('Não foi possível carregar os dados do servidor.');
+          console.error('Erro ao carregar dados:', error);
         });
     }
 
-    function marcarComunicacao(numero, button, row) {
-      fetch(`${backendUrl}/api/comunicacoes/${numero}`, {
-        method: 'POST',
-      })
-        .then((response) => {
-          if (response.ok) {
-            button.textContent = 'Desmarcar';
-            button.onclick = () => desmarcarComunicacao(numero, button, row);
-            row.classList.add('marked');
-          } else {
-            response.json().then((data) => alert(data.error));
-          }
-        })
-        .catch((error) => {
-          console.error('Erro:', error);
-          alert('Falha ao conectar ao servidor.');
-        });
+    function localizar() {
+      const searchInput = document.getElementById('searchInput').value.toLowerCase();
+      Array.from(tabelaBody.children).forEach(row => {
+        const textContent = row.textContent.toLowerCase();
+        row.style.display = textContent.includes(searchInput) ? '' : 'none';
+      });
     }
 
-    function desmarcarComunicacao(numero, button, row) {
+    function desmarcar(numero, button) {
       fetch(`${backendUrl}/api/comunicacoes/${numero}`, {
         method: 'DELETE',
       })
         .then((response) => {
           if (response.ok) {
-            button.textContent = 'Marcar';
-            button.onclick = () => marcarComunicacao(numero, button, row);
-            row.classList.remove('marked');
+            button.closest('tr').remove();
           } else {
-            response.json().then((data) => alert(data.error));
+            alert('Erro ao desmarcar');
           }
-        })
-        .catch((error) => {
-          console.error('Erro:', error);
-          alert('Falha ao conectar ao servidor.');
         });
     }
   </script>
