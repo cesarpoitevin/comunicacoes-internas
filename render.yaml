@@ -2,7 +2,7 @@ services:
   - type: web
     name: comunicacoes-internas
     env: node
-    buildCommand: npm install
+    buildCommand: npm ci
     startCommand: node server.js
     envVars:
       - key: NODE_VERSION
