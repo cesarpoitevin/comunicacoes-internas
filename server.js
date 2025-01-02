@@ -2,36 +2,39 @@ require('dotenv').config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const { Pool } = require("pg");
+const sqlite3 = require('sqlite3').verbose();
+const { open } = require('sqlite');
 
 const app = express();
 const port = process.env.PORT || 10000;
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL.includes("render.com") ? { rejectUnauthorized: false } : false,
-});
+// Configuração do SQLite
+let db;
+async function initializeDB() {
+  db = await open({
+    filename: path.join(__dirname, 'database.sqlite'),
+    driver: sqlite3.Database
+  });
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS comunicacoes (
+      numero INTEGER PRIMARY KEY,
+      assunto TEXT NOT NULL,
+      destino TEXT NOT NULL,
+      data TEXT NOT NULL
+    )
+  `);
+}
 
 app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname)));
 
-// Rota de teste de conexão
-app.get("/api/test-db", async (req, res) => {
-  try {
-    await pool.query("SELECT 1"); // Query simples para verificar a conexão
-    res.status(200).json({ message: "Conexão com o banco de dados OK!" });
-  } catch (error) {
-    console.error("Erro ao conectar ao banco de dados:", error);
-    res.status(500).json({ error: "Erro ao conectar ao banco de dados." });
-  }
-});
-
-//Rotas existentes (com tratamento de erros mais robusto)
+// Rotas
 app.get("/api/comunicacoes", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM comunicacoes ORDER BY numero");
-    res.json(result.rows);
+    const comunicacoes = await db.all("SELECT * FROM comunicacoes ORDER BY numero");
+    res.json(comunicacoes);
   } catch (error) {
     console.error("Erro ao buscar comunicações:", error);
     res.status(500).json({ error: "Erro interno do servidor" });
@@ -41,8 +44,8 @@ app.get("/api/comunicacoes", async (req, res) => {
 app.post("/api/comunicacoes", async (req, res) => {
   const { numero, assunto, destino, data } = req.body;
   try {
-    await pool.query(
-      "INSERT INTO comunicacoes (numero, assunto, destino, data) VALUES ($1, $2, $3, $4)",
+    await db.run(
+      "INSERT INTO comunicacoes (numero, assunto, destino, data) VALUES (?, ?, ?, ?)",
       [numero, assunto, destino, data]
     );
     res.status(201).json({ message: "Comunicação adicionada com sucesso" });
@@ -55,18 +58,22 @@ app.post("/api/comunicacoes", async (req, res) => {
 app.delete("/api/comunicacoes/:numero", async (req, res) => {
   const numero = parseInt(req.params.numero);
   try {
-    const result = await pool.query("DELETE FROM comunicacoes WHERE numero = $1", [numero]);
-    if (result.rowCount === 0) {
-        return res.status(404).json({ message: "Comunicação não encontrada" });
+    const result = await db.run("DELETE FROM comunicacoes WHERE numero = ?", numero);
+    if (result.changes === 0) {
+      return res.status(404).json({ message: "Comunicação não encontrada" });
     }
-    res.status(200).json({ message: "Comunicação excluída com sucesso" });
+    res.json({ message: "Comunicação excluída com sucesso" });
   } catch (error) {
     console.error("Erro ao deletar comunicação:", error);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
 
-
-app.listen(port, () => {
-  console.log(`Servidor rodando na porta ${port}`);
+// Inicializa o banco e inicia o servidor
+initializeDB().then(() => {
+  app.listen(port, () => {
+    console.log(`Servidor rodando na porta ${port}`);
+  });
+}).catch(err => {
+  console.error("Erro ao inicializar o banco de dados:", err);
 });
